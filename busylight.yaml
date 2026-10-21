@@ -22,8 +22,9 @@
 #   tap while Free, Away or Off -> Busy for ${busy_minutes} min, then Away
 #   (amber) for ${break_minutes} min, then Free.
 #   tap while Busy              -> Free immediately (timer cancelled).
-# The internal "Status" select (Off / Free / Away / Busy) drives the lights
-# and is restored after a power cycle.
+#   hold for 3 s                -> Away (timer cancelled).
+# The internal "Status" select (Off / Free / Away / Busy) drives the lights.
+# It always starts as Away (amber), including after a power cut.
 
 substitutions:
   device_name: busylight
@@ -89,13 +90,13 @@ select:
     name: Status
     icon: mdi:traffic-light
     optimistic: true
-    restore_value: true
+    restore_value: false
     options:
       - "Off"
       - Free
       - Away
       - Busy
-    initial_option: "Off"
+    initial_option: Away
     on_value:
       then:
         - lambda: |-
@@ -154,5 +155,18 @@ binary_sensor:
     pin: GPIO15 # D8
     filters:
       - delayed_on: 20ms
-    on_press:
-      - script.execute: focus_tap
+    on_multi_click:
+      # Short tap (released within 1 s): focus timer toggle
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 50ms
+        then:
+          - script.execute: focus_tap
+      # Long press (held 3 s): fires while still held
+      - timing:
+          - ON for at least 3s
+        then:
+          - script.stop: focus_timer
+          - select.set:
+              id: status
+              option: Away

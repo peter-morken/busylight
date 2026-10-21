@@ -11,7 +11,9 @@ Tapping the button runs a focus timer:
 | Green, amber or off | **Red** for 25 min, then **amber** for 5 min, then **green** |
 | Red | **Green** immediately (timer cancelled) |
 
-The last colour is restored after a power cut. The durations are set by `busy_minutes` and `break_minutes` under `substitutions:` in `busylight.yaml`.
+Holding the button for 3 seconds switches to **amber** and cancels any running timer. A tap is a touch released within 1 second; touches between 1 and 3 seconds do nothing.
+
+The light starts as amber at power-up, including after a power cut. The durations are set by `busy_minutes` and `break_minutes` under `substitutions:` in `busylight.yaml`.
 
 ## Parts
 
