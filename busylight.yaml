@@ -15,7 +15,8 @@
 # Standalone build: no Wi-Fi, Home Assistant API, OTA, captive portal or
 # Bluetooth. The ESP8266 radio stays off (Arduino core 3.x leaves Wi-Fi
 # disabled at boot unless a component enables it). Updates require USB.
-# The previous networked config is kept in busylight-wifi.yaml.bak.
+# The networked variant (old board at 192.168.50.182) is busylight-wifi.yaml
+# in the esphome-configs repo.
 #
 # Touch button runs a focus timer:
 #   tap while Free, Away or Off -> Busy for ${busy_minutes} min, then Away
