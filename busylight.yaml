@@ -1,0 +1,157 @@
+# Busylight - ESPHome firmware for Wemos D1 Mini + LED traffic light module
+#
+# Hardware wiring (module has onboard resistors, active HIGH):
+#   Traffic light R   -> D5 (GPIO14)
+#   Traffic light Y   -> D6 (GPIO12)
+#   Traffic light G   -> D7 (GPIO13)
+#   Traffic light GND -> G
+#   TTP223 touch VCC  -> 3V3
+#   TTP223 touch I/O  -> D8 (GPIO15) (default jumpers: momentary, active HIGH)
+#     D8 is a boot strap pin that must be LOW at power-up. The TTP223 idles
+#     LOW and the D1 Mini has a 10k pull-down, so this is fine as long as
+#     the pad is not touched while the board powers up.
+#   TTP223 touch GND  -> G
+#
+# Standalone build: no Wi-Fi, Home Assistant API, OTA, captive portal or
+# Bluetooth. The ESP8266 radio stays off (Arduino core 3.x leaves Wi-Fi
+# disabled at boot unless a component enables it). Updates require USB.
+# The previous networked config is kept in busylight-wifi.yaml.bak.
+#
+# Touch button runs a focus timer:
+#   tap while Free, Away or Off -> Busy for ${busy_minutes} min, then Away
+#   (amber) for ${break_minutes} min, then Free.
+#   tap while Busy              -> Free immediately (timer cancelled).
+# The internal "Status" select (Off / Free / Away / Busy) drives the lights
+# and is restored after a power cycle.
+
+substitutions:
+  device_name: busylight
+  friendly_name: Busylight
+  busy_minutes: "25"
+  break_minutes: "5"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+esp8266:
+  board: d1_mini
+  restore_from_flash: true
+
+logger:
+  baud_rate: 115200
+
+# ---------------------------------------------------------------- outputs
+
+output:
+  - platform: gpio
+    id: out_red
+    pin: GPIO14 # D5
+  - platform: gpio
+    id: out_yellow
+    pin: GPIO12 # D6
+  - platform: gpio
+    id: out_green
+    pin: GPIO13 # D7
+
+light:
+  - platform: binary
+    id: light_red
+    name: Red
+    output: out_red
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - strobe:
+          name: Blink
+  - platform: binary
+    id: light_yellow
+    name: Yellow
+    output: out_yellow
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - strobe:
+          name: Blink
+  - platform: binary
+    id: light_green
+    name: Green
+    output: out_green
+    restore_mode: RESTORE_DEFAULT_OFF
+    effects:
+      - strobe:
+          name: Blink
+
+# ---------------------------------------------------------------- status
+
+select:
+  - platform: template
+    id: status
+    name: Status
+    icon: mdi:traffic-light
+    optimistic: true
+    restore_value: true
+    options:
+      - "Off"
+      - Free
+      - Away
+      - Busy
+    initial_option: "Off"
+    on_value:
+      then:
+        - lambda: |-
+            auto set = [](light::LightState *l, bool on) {
+              auto call = on ? l->turn_on() : l->turn_off();
+              call.perform();
+            };
+            set(id(light_red), x == "Busy");
+            set(id(light_yellow), x == "Away");
+            set(id(light_green), x == "Free");
+
+# ---------------------------------------------------------------- focus timer
+
+script:
+  - id: focus_timer
+    mode: restart
+    then:
+      - select.set:
+          id: status
+          option: Busy
+      - delay: ${busy_minutes}min
+      - if:
+          condition:
+            lambda: return id(status).current_option() == "Busy";
+          then:
+            - select.set:
+                id: status
+                option: Away
+            - delay: ${break_minutes}min
+            - if:
+                condition:
+                  lambda: return id(status).current_option() == "Away";
+                then:
+                  - select.set:
+                      id: status
+                      option: Free
+
+  - id: focus_tap
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: return id(status).current_option() == "Busy";
+          then:
+            - script.stop: focus_timer
+            - select.set:
+                id: status
+                option: Free
+          else:
+            - script.execute: focus_timer
+
+binary_sensor:
+  - platform: gpio
+    id: touch
+    name: Touch
+    pin: GPIO15 # D8
+    filters:
+      - delayed_on: 20ms
+    on_press:
+      - script.execute: focus_tap
