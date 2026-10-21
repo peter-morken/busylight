@@ -35,6 +35,15 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  # Lights set up after the select and would override it, so apply the
+  # startup colour once everything else has started.
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          id(light_red).turn_off().perform();
+          id(light_yellow).turn_on().perform();
+          id(light_green).turn_off().perform();
 
 esp8266:
   board: d1_mini
@@ -61,7 +70,7 @@ light:
     id: light_red
     name: Red
     output: out_red
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
     effects:
       - strobe:
           name: Blink
@@ -69,7 +78,7 @@ light:
     id: light_yellow
     name: Yellow
     output: out_yellow
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
     effects:
       - strobe:
           name: Blink
@@ -77,7 +86,7 @@ light:
     id: light_green
     name: Green
     output: out_green
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: ALWAYS_OFF
     effects:
       - strobe:
           name: Blink
@@ -155,18 +164,28 @@ binary_sensor:
     pin: GPIO15 # D8
     filters:
       - delayed_on: 20ms
+    # The TTP223 calibrates at power-up and can pulse its output, so touches
+    # in the first 2 s after boot are ignored.
     on_multi_click:
       # Short tap (released within 1 s): focus timer toggle
       - timing:
           - ON for at most 1s
           - OFF for at least 50ms
         then:
-          - script.execute: focus_tap
+          - if:
+              condition:
+                lambda: return millis() > 2000;
+              then:
+                - script.execute: focus_tap
       # Long press (held 3 s): fires while still held
       - timing:
           - ON for at least 3s
         then:
-          - script.stop: focus_timer
-          - select.set:
-              id: status
-              option: Away
+          - if:
+              condition:
+                lambda: return millis() > 2000;
+              then:
+                - script.stop: focus_timer
+                - select.set:
+                    id: status
+                    option: Away
