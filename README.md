@@ -4,16 +4,30 @@ A standalone desk busylight: a Wemos D1 Mini (ESP8266), a red/yellow/green LED t
 
 ## Behaviour
 
-Tapping the button runs a focus timer:
-
-| Current light | Tap → |
+| Touch | Light |
 |---|---|
-| Green, amber or off | **Red** for 25 min, then **amber** for 5 min, then **green** |
-| Red | **Green** immediately (timer cancelled) |
+| Tap while green, amber or off | **Red**, until you change it |
+| Tap while red | **Green** |
+| Hold 3 s | **Amber** |
 
-Holding the button for 3 seconds switches to **amber** and cancels any running timer. A tap is a touch released within 1 second; touches between 1 and 3 seconds do nothing.
+A tap is a touch released within 1 second; touches between 1 and 3 seconds do nothing.
 
-The light starts as amber at power-up, including after a power cut. The durations are set by `busy_minutes` and `break_minutes` under `substitutions:` in `busylight.yaml`.
+### After a power break
+
+The light is powered from the monitor, so plugging a PC into the screen, or
+unplugging it, power-cycles the light. On power-up it guesses whether you
+just arrived or just left:
+
+| Before the power break | After |
+|---|---|
+| Red or green | **Amber**: you were at the desk, so the break means you left |
+| Amber that you set by holding the button | **Amber** |
+| Amber from the last power-up, button not touched since | **Green**: nobody was there, so the break means a PC was just plugged in |
+
+The very first power-up is amber. A power break within 5 s of power-up
+(`settle_seconds`) counts as part of the same plug-in, so a connector that
+bounces the power doesn't flip the result. The decision is stored in flash
+and saved immediately.
 
 ## Parts
 

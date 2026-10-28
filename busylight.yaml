@@ -18,19 +18,28 @@
 # The networked variant (old board at 192.168.50.182) is busylight-wifi.yaml
 # in the esphome-configs repo.
 #
-# Touch button runs a focus timer:
-#   tap while Free, Away or Off -> Busy for ${busy_minutes} min, then Away
-#   (amber) for ${break_minutes} min, then Free.
-#   tap while Busy              -> Free immediately (timer cancelled).
-#   hold for 3 s                -> Away (timer cancelled).
+# Touch button:
+#   tap while Free, Away or Off -> Busy (red) until changed by hand.
+#   tap while Busy              -> Free (green).
+#   hold for 3 s                -> Away (amber).
 # The internal "Status" select (Off / Free / Away / Busy) drives the lights.
-# It always starts as Away (amber), including after a power cut.
+#
+# Presence after a power break. The light is powered from the monitor, so
+# plugging a PC in or out of the screen power-cycles it. At boot it picks:
+#   - Amber, if before the break it was red or green, or amber set by hand
+#     (someone was at the desk, so the break means they left).
+#   - Green, if before the break it was amber from the previous boot and
+#     the button had not been touched (nobody was there, so the break
+#     means a PC was just plugged in).
+# This is one flag in flash, boot_green. Any button use clears it. Booting
+# to amber sets it, booting to green clears it, but only after the light
+# has been on for ${settle_seconds} s, so a plug-in that bounces the power
+# twice doesn't flip it back and forth.
 
 substitutions:
   device_name: busylight
   friendly_name: Busylight
-  busy_minutes: "25"
-  break_minutes: "5"
+  settle_seconds: "5"
 
 esphome:
   name: ${device_name}
@@ -40,14 +49,40 @@ esphome:
   on_boot:
     priority: -100
     then:
-      - lambda: |-
-          id(light_red).turn_off().perform();
-          id(light_yellow).turn_on().perform();
-          id(light_green).turn_off().perform();
+      - select.set:
+          id: status
+          option: !lambda 'return id(boot_green) ? "Free" : "Away";'
+      - delay: ${settle_seconds}s
+      # Untouched since boot: the next power break means the opposite of
+      # this one (see the presence notes at the top).
+      - if:
+          condition:
+            lambda: return !id(touched_since_boot);
+          then:
+            - globals.set:
+                id: boot_green
+                value: !lambda 'return id(status).current_option() == "Away";'
 
 esp8266:
   board: d1_mini
   restore_from_flash: true
+
+# Save boot_green to flash as soon as it changes (default: once a minute),
+# so it survives a power break right after a button press. It changes a few
+# times a day at most, so flash wear doesn't matter.
+preferences:
+  flash_write_interval: 0s
+
+globals:
+  # Next power-up shows green (true) or amber (false).
+  - id: boot_green
+    type: bool
+    restore_value: true
+    initial_value: "false"
+  - id: touched_since_boot
+    type: bool
+    restore_value: false
+    initial_value: "false"
 
 logger:
   baud_rate: 115200
@@ -117,45 +152,27 @@ select:
             set(id(light_yellow), x == "Away");
             set(id(light_green), x == "Free");
 
-# ---------------------------------------------------------------- focus timer
+# ---------------------------------------------------------------- button actions
 
 script:
-  - id: focus_timer
-    mode: restart
+  # Any button use means someone is at the desk: the next power break is
+  # them leaving, so boot to amber.
+  - id: mark_touched
     then:
-      - select.set:
-          id: status
-          option: Busy
-      - delay: ${busy_minutes}min
-      - if:
-          condition:
-            lambda: return id(status).current_option() == "Busy";
-          then:
-            - select.set:
-                id: status
-                option: Away
-            - delay: ${break_minutes}min
-            - if:
-                condition:
-                  lambda: return id(status).current_option() == "Away";
-                then:
-                  - select.set:
-                      id: status
-                      option: Free
+      - globals.set:
+          id: touched_since_boot
+          value: "true"
+      - globals.set:
+          id: boot_green
+          value: "false"
 
-  - id: focus_tap
+  - id: tap
     mode: single
     then:
-      - if:
-          condition:
-            lambda: return id(status).current_option() == "Busy";
-          then:
-            - script.stop: focus_timer
-            - select.set:
-                id: status
-                option: Free
-          else:
-            - script.execute: focus_timer
+      - script.execute: mark_touched
+      - select.set:
+          id: status
+          option: !lambda 'return id(status).current_option() == "Busy" ? "Free" : "Busy";'
 
 binary_sensor:
   - platform: gpio
@@ -167,7 +184,7 @@ binary_sensor:
     # The TTP223 calibrates at power-up and can pulse its output, so touches
     # in the first 2 s after boot are ignored.
     on_multi_click:
-      # Short tap (released within 1 s): focus timer toggle
+      # Short tap (released within 1 s): red <-> green
       - timing:
           - ON for at most 1s
           - OFF for at least 50ms
@@ -176,7 +193,7 @@ binary_sensor:
               condition:
                 lambda: return millis() > 2000;
               then:
-                - script.execute: focus_tap
+                - script.execute: tap
       # Long press (held 3 s): fires while still held
       - timing:
           - ON for at least 3s
@@ -185,7 +202,7 @@ binary_sensor:
               condition:
                 lambda: return millis() > 2000;
               then:
-                - script.stop: focus_timer
+                - script.execute: mark_touched
                 - select.set:
                     id: status
                     option: Away
