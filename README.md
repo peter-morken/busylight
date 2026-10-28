@@ -29,12 +29,18 @@ The very first power-up is amber. A power break within 5 s of power-up
 bounces the power doesn't flip the result. The decision is stored in flash
 and saved immediately.
 
-## Parts
+## Bill of materials
 
-- Wemos D1 Mini (ESP8266)
-- LED traffic light module (R / Y / G / GND, with onboard resistors)
-- TTP223 capacitive touch module
-- USB cable and a 5 V USB power supply
+Per light. "In stock" means already bought; the pack sizes are what was ordered.
+
+| Part | Qty | Status | Notes |
+|---|---|---|---|
+| Wemos D1 Mini (ESP8266), USB-C version | 1 | In stock (8 pcs) | |
+| LED traffic light module (R / Y / G / GND, onboard resistors) | 1 | In stock (20 pcs) | A second one can be wired in parallel |
+| TTP223 capacitive touch module | 1 | Not found in AliExpress orders | Check your parts drawer, or order a pack |
+| Hook-up wire | 7 short lengths | | |
+| Wago connector or splice | 1 | | Joins the three ground wires to the single G pin |
+| USB-C cable and 5 V USB power supply | 1 | | Or the monitor's USB port, which is what the presence logic expects |
 
 ## Wiring
 
