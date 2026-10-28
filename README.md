@@ -32,17 +32,16 @@ and saved immediately.
 ## Bill of materials
 
 Per light. "In stock" means already bought; the pack sizes are what was
-ordered. Where-to-buy links are AliExpress searches, because individual
-listings come and go. Match the spec in the Notes column.
+ordered. When buying, match the spec in the Notes column.
 
-| Part | Qty | Status | Where to buy | Notes |
-|---|---|---|---|---|
-| Wemos D1 Mini (ESP8266), USB-C version | 1 | In stock (8 pcs) | [AliExpress](https://www.aliexpress.com/w/wholesale-wemos-d1-mini-type-c.html) | |
-| LED traffic light module (R / Y / G / GND, onboard resistors) | 1 | In stock (20 pcs) | [AliExpress](https://www.aliexpress.com/w/wholesale-traffic-light-led-module.html) | A second one can be wired in parallel |
-| TTP223 capacitive touch module | 1 | **To buy** (not found in AliExpress orders) | [AliExpress](https://www.aliexpress.com/w/wholesale-ttp223-touch-module.html) | Pick the **momentary** ("no locking") version. Avoid "self-locking": that variant toggles in hardware and breaks the tap and hold logic |
-| Hook-up wire | 7 short lengths | | | |
-| Wago connector or splice | 1 | | | Joins the three ground wires to the single G pin |
-| USB-C cable and 5 V USB power supply | 1 | | | Or the monitor's USB port, which is what the presence logic expects |
+| Part | Qty | Status | Notes |
+|---|---|---|---|
+| Wemos D1 Mini (ESP8266), USB-C version | 1 | In stock (8 pcs) | |
+| LED traffic light module (R / Y / G / GND, onboard resistors) | 1 | In stock (20 pcs) | A second one can be wired in parallel |
+| TTP223 capacitive touch module | 1 | **To buy** (not found in AliExpress orders) | Pick the **momentary** ("no locking") version. Avoid "self-locking": that variant toggles in hardware and breaks the tap and hold logic |
+| Hook-up wire | 7 short lengths | | |
+| Wago connector or splice | 1 | | Joins the three ground wires to the single G pin |
+| USB-C cable and 5 V USB power supply | 1 | | Or the monitor's USB port, which is what the presence logic expects |
 
 ## Wiring
 
