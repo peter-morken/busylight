@@ -2,3 +2,7 @@
 /.esphome/
 /secrets.yaml
 *.bin
+
+# OS / editor backups
+.DS_Store
+*.bak

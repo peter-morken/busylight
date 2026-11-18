@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80.000mm" height="80.000mm" viewBox="0 0 80.000 80.000">
+<g id="CUT" fill="none" stroke="#ff0000" stroke-width="0.1">
+<circle cx="17.150" cy="59.850" r="4.950"/>
+<circle cx="28.650" cy="59.850" r="4.950"/>
+<circle cx="40.150" cy="59.850" r="4.950"/>
+</g>
+<g id="OUTLINE" fill="none" stroke="#0000ff" stroke-width="0.1">
+<polygon points="1.500,78.500 71.800,78.500 71.800,41.200 1.500,41.200"/>
+</g></svg>
